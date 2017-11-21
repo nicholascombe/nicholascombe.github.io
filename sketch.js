@@ -1,5 +1,5 @@
 var chickHicks;
-var speed = 5;
+var speed = -5;
 var mcqueen;
 var Mcqueen = {
   h: 630 - 74.4,
@@ -21,18 +21,19 @@ function setup() {
 }
 function draw() {
   //platforms();
+  speed;
   keyPressed();
   borders();
-  playerFalls();
-  Mcqueen.h-=speed;
+  Mcqueen.h -= speed;
   mcqueen.position(Mcqueen.w, Mcqueen.h);
   mcqueen.size(124, 74.4);
   for (i = 0; i < 100; i++) {
     platforms[i].drawPlatforms();
   }
   playerMoves();
-  playerLands();
+//  playerLands();
 }
+
 function borders() {
   var x = 250;
   fill(0);
@@ -49,7 +50,7 @@ function borders() {
 
 function keyPressed() {
   if (keyCode === UP_ARROW) {
-    speed ++;
+    speed += 5;
     mySound.setVolume(1000);
     mySound.play();
   }
@@ -72,11 +73,11 @@ function Platforms() {
     rect(this.x, this.y, 50, 10);
   }
 }
-function playerLands() {
-  if (Mcqueen.h >= (Platforms.y + 10) && Mcqueen.h <= (Platforms.y - 10) && Mcqueen.x >= (Platforms.x - 10) && Mcqueen.x <= (Platforms.x +10)) {
-    speed = 0;
-  }
-}
+// function playerLands() {
+//   if (Mcqueen.h >= (Platforms.y + 10) && Mcqueen.h <= (Platforms.y - 10) && Mcqueen.x >= (Platforms.x - 10) && Mcqueen.x <= (Platforms.x +10)) {
+//     speed = 0;
+//   }
+// }
 function playerDeath() {
   if (Mcqueen.h > 1000) {
     chickHicks.show();
@@ -103,11 +104,6 @@ function playerDeath() {
 //     key_right = false;
 //   }
 // }
-function playerFalls() {
-  if (speed > 10) {
-  speed --;
-  }
-}
 function keyReleased() {
   if (keyCode == 37) {
     key_left = false;
