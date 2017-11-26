@@ -1,124 +1,160 @@
-var chickHicks;
-var speed = -5;
-var mcqueen;
-var Mcqueen = {
-  h: 630 - 74.4,
-  w: 480
-}
-var platforms = []
-var key_left;
-var key_right;
+const GRAVITY = -0.6;
+
+var player;
+var points;
+
+var platforms = [];
 
 function setup() {
-  createCanvas(1000, 800);
-  mcqueen = createImg("McQueen.png");
-  colorMode(HSB);
-  mcqueen.show();
-  chickHicks = createImg("Chick_Hicks.png");
-  for (i = 0; i < 100; i++) {
-    platforms[i] = new Platforms(i);
-  }
+
+  createCanvas(400, 600);
+
+  player = new McQueen(width / 2, height / 2, false, 30, color("#FFF070"));
+
+  platforms = generatePlatforms();
+
+  points = 0;
+
+  frameRate(60);
 }
+
 function draw() {
-  //platforms();
-  speed;
-  keyPressed();
-  borders();
-  Mcqueen.h -= speed;
-  mcqueen.position(Mcqueen.w, Mcqueen.h);
-  mcqueen.size(124, 74.4);
-  for (i = 0; i < 100; i++) {
-    platforms[i].drawPlatforms();
-  }
-  playerMoves();
-//  playerLands();
+
+  background(51);
+
+  handlePlayer();
+
+  handlePlatforms();
+
+	drawScore();
+
+  handleKeys();
 }
 
-function borders() {
-  var x = 250;
-  fill(0);
-  rect(0, 0, x, 800);
-  fill(0);
-  rect(3*x, 0, x, 800);
-  if (Mcqueen.w < 126) {
-    Mcqueen.w = 750;
-  }
-  if (Mcqueen.w > 750) {
-    Mcqueen.w = 126;
+/**
+ * updates, draws, and applies GRAVITY to player
+ * checks if the player falls
+ */
+function handlePlayer() {
+
+	player.update();
+  player.draw();
+
+  if (player.maxAltitude + player.location.y < -height / 2) {
+    /* end game */
+    endGame();
   }
 }
 
-function keyPressed() {
-  if (keyCode === UP_ARROW) {
-    speed += 5;
-    mySound.setVolume(1000);
-    mySound.play();
-  }
-  if (keyCode == 37) {
-    key_left = true;
+/**
+ * checks collision, draws, and manages all platforms
+ */
+function handlePlatforms() {
+
+  for (var i = platforms.length - 1; i >= 0; i--) {
+		// loop through platforms backward
+
+    if (platforms[i].onScreen) {
+
+      platforms[i].draw(player.location.y);
+
+			if (platforms[i] instanceof McQueen)
+				platforms[i].update(); // update McQueen
+
+      if (platforms[i].collidesWith(player)) {
+
+        player.jump();
+        if (platforms[i] instanceof McQueen) {
+					// it's not a platform, but a McQueen!
+
+          points += 100;
+          platforms.splice(i, 1); // remove from array
+        }
+      }
+    } else {
+
+      /* no longer on-screen, delete previous platforms */
+      platforms.splice(i, 1);
+
+			/* push new platform */
+      var x = noise(player.maxAltitude, frameCount) * width;
+      var y = player.maxAltitude + height;
+
+      if (random() < 0.9) {
+				// 90% chance of being a regular platform
+
+        platforms.push(new Platform(x, y, 55, color("#FF80F0")));
+      } else {
+
+        if (random() > 0.5) {
+					// 5% chance of being a McQueen
+
+					platforms.push(new McQueen(x, y, true, 50, color("#00FFFF")));
+				}
+
+				// 5% chance of not regenerating
+      }
     }
-  else if (keyCode == 39) {
-    key_right = true;
-  }
-}
-function preload() {
-  soundFormats('mp3');
-  mySound = loadSound("Kachow.mp3");
-}
-function Platforms() {
-  this.x = random(250, 740);
-  this.y = 625-random(30, 50)*i;
-  this.drawPlatforms = function() {
-    fill(0);
-    rect(this.x, this.y, 50, 10);
-  }
-}
-// function playerLands() {
-//   if (Mcqueen.h >= (Platforms.y + 10) && Mcqueen.h <= (Platforms.y - 10) && Mcqueen.x >= (Platforms.x - 10) && Mcqueen.x <= (Platforms.x +10)) {
-//     speed = 0;
-//   }
-// }
-function playerDeath() {
-  if (Mcqueen.h > 1000) {
-    chickHicks.show();
-    chickHicks.position(750, 400);
-    for(i = 0; i < 20; i++){
-      chickHicks.size(50*i, 50*i);
-    }
   }
 }
 
-// function handleKeyDown(event) {
-//   if (event.keycode == 37) {
-//     key_left = true;
-//   }
-//   else if (event.keycode == 39) {
-//     key_right = true;
-//   }
-// }
-// function handleKeyUp(event) {
-//   if (event.keycode == 37) {
-//     key_left = false;
-//   }
-//   else if (event.keycode == 39) {
-//     key_right = false;
-//   }
-// }
-function keyReleased() {
-  if (keyCode == 37) {
-    key_left = false;
+/**
+ * initializes platforms
+ */
+function generatePlatforms() {
+
+	var field = []; // returning array
+
+	for (var y = 0; y < height * 2; y += 40) {
+		// loop through Y
+
+    for (var i = 0; i < 3; i++) { // attempt 3 new platforms
+
+      var x = noise(i, y) * width;
+
+      if (noise(y, i) > 0.5) // 50% chance of a new platform
+        field.push(new Platform(x, y, 55, color("#FF80F0")));
+    }
   }
-  else if (keyCode == 39) {
-    key_right = false;
+
+	return field;
+}
+
+/**
+ * moves player based upon user input
+ */
+function handleKeys() {
+
+  if (keyIsDown(LEFT_ARROW)) {
+
+    player.applyForce(-1, 0);
+  } else if (keyIsDown(RIGHT_ARROW)) {
+
+    player.applyForce(1, 0);
   }
 }
-function playerMoves() {
-  if (key_left == true) {
-    Mcqueen.w = (Mcqueen.w - 10);
-    console.log("left key is being pressed");
-  }
-  else if (key_right == true) {
-    Mcqueen.w = (Mcqueen.w + 10);
-    console.log("right key is being pressed");
-  }
+
+/**
+ * draws the score
+ */
+function drawScore() {
+
+  textSize(30);
+  textAlign(LEFT);
+  fill(255);
+  noStroke();
+  text((player.maxAltitude + points).toFixed(0), 50, 50);
+}
+
+/**
+ * ends loop, draws game over message
+ */
+function endGame() {
+
+  textAlign(CENTER);
+  textSize(60);
+  noStroke();
+  fill("#90FF90");
+  text("Game Over!", width / 2, height / 2);
+  noLoop();
 }
